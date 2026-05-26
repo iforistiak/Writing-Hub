@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Writing Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* কন্টেন্ট কপি ও সিলেকশন পুরোপুরি বন্ধ করার জন্য সিএসএস */
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        /* প্রিন্ট বা পিডিএফ সেভ অপশন। ব্লক করার জন্য */
+        @media print {
+            body { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-tight text-indigo-600">Writing<span class="text-gray-900">Hub.</span></h1>
+            <span class="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full font-medium border border-indigo-100">Live Database Connected</span>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-8">
+        
+        <div class="text-center my-8">
+            <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">English Writing Library</h2>
+            <p class="mt-3 text-gray-500 text-sm">প্যারাগ্রাফ, ডায়ালগ, ইমেল এবং অ্যাপ্লিকেশন সহজে খুঁজুন এবং পড়ুন।</p>
+            
+            <div class="mt-8 max-w-xl mx-auto relative">
+                <input type="text" id="searchInput" placeholder="Search topic (e.g., A Book Fair, Dialogue...)" 
+                    class="w-full pl-5 pr-12 py-3.5 bg-white border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-gray-900 placeholder-gray-400">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-2 mt-4" id="categoryTabs">
+                <button onclick="filterCategory('All')" class="cat-btn px-4 py-1.5 rounded-lg text-sm font-medium bg-indigo-600 text-white shadow-sm">All</button>
+                <button onclick="filterCategory('Paragraph')" class="cat-btn px-4 py-1.5 rounded-lg text-sm font-medium bg-white text-gray-600 border border-gray-200 hover:bg-gray-50">Paragraph</button>
+                <button onclick="filterCategory('Dialogue')" class="cat-btn px-4 py-1.5 rounded-lg text-sm font-medium bg-white text-gray-600 border border-gray-200 hover:bg-gray-50">Dialogue</button>
+                <button onclick="filterCategory('Email')" class="cat-btn px-4 py-1.5 rounded-lg text-sm font-medium bg-white text-gray-600 border border-gray-200 hover:bg-gray-50">Email</button>
+            </div>
+        </div>
+
+        <hr class="border-gray-200 my-8">
+
+        <div id="loadingSpinner" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
+            <p class="text-sm text-gray-400 mt-2">Connecting to Supabase Database...</p>
+        </div>
+
+        <div id="topicsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
+            </div>
+
+        <div id="noDataMessage" class="hidden text-center py-12 text-gray-400">
+            <svg class="mx-auto h-12 w-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p class="text-base font-medium">No topics found matching your search!</p>
+        </div>
+
+        <div id="readingModal" class="hidden mt-8 bg-white border border-gray-200 rounded-2xl shadow-md p-6 transition-all">
+            <div class="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
+                <div>
+                    <span id="modalCategory" class="text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">Category</span>
+                    <h3 id="modalTitle" class="text-xl font-bold text-gray-900 mt-1">Topic Title</h3>
+                </div>
+                <button onclick="closeReadingView()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto bg-gray-50 rounded-xl p-4 flex justify-center">
+                <canvas id="textCanvas" class="bg-gray-50 max-w-full"></canvas>
+            </div>
+            <p class="text-xs text-center text-gray-400 mt-3">⚠️ Screenshots, copying, and right-clicks are strictly prohibited for copyright protection.</p>
+        </div>
+
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 py-4 text-center text-xs text-gray-400 mt-auto">
+        &copy; 2026 WritingHub Library. All rights reserved.
+    </footer>
+
+    <script>
+        // ১. সুপাবেস ক্রেডেনশিয়ালস কনফিগারেশন 
+        // (এখানে আপনার অরিজিনাল Supabase URL এবং Anon Key বসিয়ে দিন)
+        const SUPABASE_URL = "mnbxgedmzgejxjmnkapu";
+        const SUPABASE_ANON_KEY = "sb_publishable_-MhZk-7LffdsK-IM_Of32A_0HRliIcv";
+        
+        // সুপাবেস ক্লায়েন্ট ইনিশিয়েট করা
+        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // গ্লোবাল ভেরিয়েবল যেখানে ডেটাবেজের ডেটা জমা থাকবে
+        let localDatabase = [];
+        let currentCategory = "All";
+
+        // ২. সুপাবেস থেকে লাইভ ডেটা ফেচ (Fetch) করার ফাংশন
+        async function fetchWritingsFromSupabase() {
+            const spinner = document.getElementById('loadingSpinner');
+            const container = document.getElementById('topicsContainer');
+
+            try {
+                // 'writings' টেবিল থেকে id, title, category, content কলাম তুলে আনা
+                const { data, error } = await supabase
+                    .from('writings')
+                    .select('id, title, category, content');
+
+                if (error) throw error;
+
+                // সুপাবেস থেকে আসা ডেটা আমাদের লোকাল অ্যারেতে সেভ করা
+                localDatabase = data || [];
+                
+                // লোডিং স্পিনার হাইড করে মেইন কন্টেন্ট শো করা
+                spinner.classList.add('hidden');
+                container.classList.remove('hidden');
+
+                // প্রথমবার ডেটা রেন্ডার করা
+                renderTopics();
+
+            } catch (error) {
+                console.error("Database connection failed:", error.message);
+                spinner.innerHTML = `<p class="text-sm text-red-500 font-medium">Failed to load database. Please check your Supabase Keys or RLS policy.</p>`;
+            }
+        }
+
+        // ৩. সার্চ ও ক্যাটাগরি ফিল্টার করার মেইন ফ্রন্ট-এন্ড ফাংশন
+        function renderTopics() {
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const container = document.getElementById('topicsContainer');
+            const noData = document.getElementById('noDataMessage');
+            
+            // ফিল্টারিং লজিক
+            const filtered = localDatabase.filter(item => {
+                const matchesSearch = item.title && item.title.toLowerCase().includes(searchQuery);
+                const matchesCat = currentCategory === "All" || item.category === currentCategory;
+                return matchesSearch && matchesCat;
+            });
+
+            // আগের কার্ডগুলো ক্লিন করা
+            container.innerHTML = "";
+
+            if (filtered.length === 0) {
+                noData.classList.remove('hidden');
+                return;
+            } else {
+                noData.classList.add('hidden');
+            }
+
+            // ডায়নামিক কার্ড রেন্ডারিং
+            filtered.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer flex flex-col justify-between";
+                card.setAttribute('onclick', `openReadingView(${item.id})`);
+                
+                // কন্টেন্ট এর প্রথম কয়েকটা লাইন প্রিভিউ আকারে দেখানোর জন্য সাবস্ট্রিং ট্রিম
+                const previewText = item.content ? item.content.substring(0, 100) + '...' : '';
+
+                card.innerHTML = `
+                    <div>
+                        <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-wider">${item.category || 'General'}</span>
+                        <h4 class="text-lg font-bold text-gray-800 mt-2">${item.title || 'Untitled'}</h4>
+                        <p class="text-sm text-gray-400 mt-1 line-clamp-2">${previewText}</p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-gray-50 flex items-center text-xs font-medium text-indigo-600 hover:text-indigo-700">
+                        Click to Read Inside 
+                        <svg class="w-3.5 h-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // ৪. ক্যাটাগরি ট্যাব পরিবর্তন
+        function filterCategory(cat) {
+            currentCategory = cat;
+            const buttons = document.querySelectorAll('.cat-btn');
+            buttons.forEach(btn => {
+                if (btn.innerText === cat) {
+                    btn.className = "cat-btn px-4 py-1.5 rounded-lg text-sm font-medium bg-indigo-600 text-white shadow-sm";
+                } else {
+                    btn.className = "cat-btn px-4 py-1.5 rounded-lg text-sm font-medium bg-white text-gray-600 border border-gray-200 hover:bg-gray-50";
+                }
+            });
+            renderTopics();
+        }
+
+        // ৫. ক্যানভাসে টেক্সট রেন্ডার করার মেথড (Wrap text support)
+        function drawTextOnCanvas(text) {
+            const canvas = document.getElementById('textCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            const maxWidth = 700; 
+            const lineHeight = 28;
+            const padding = 30;
+            
+            // নতুন লাইনের (\n) টেক্সট প্রসেসিং
+            const words = text.replace(/\n/g, " \n ").split(" ");
+            let lines = [];
+            let currentLine = "";
+
+            ctx.font = "16px Inter, system-ui, Arial"; 
+
+            for (let n = 0; n < words.length; n++) {
+                if (words[n] === "\n") {
+                    lines.push(currentLine);
+                    currentLine = "";
+                    continue;
+                }
+                let testLine = currentLine + words[n] + " ";
+                let metrics = ctx.measureText(testLine);
+                let testWidth = metrics.width;
+                if (testWidth > (maxWidth - padding * 2) && n > 0) {
+                    lines.push(currentLine);
+                    currentLine = words[n] + " ";
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            lines.push(currentLine);
+
+            // ডায়নামিক হাইট ক্যালকুলেশন
+            canvas.width = maxWidth;
+            canvas.height = (lines.length * lineHeight) + (padding * 2);
+
+            // ব্যাকগ্রাউন্ড পেইন্ট
+            ctx.fillStyle = "#f9fafb";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // টেক্সট ড্রয়িং স্টাইল
+            ctx.font = "16px Inter, system-ui, Arial";
+            ctx.fillStyle = "#1f2937"; 
+            ctx.textBaseline = "top";
+
+            for (let i = 0; i < lines.length; i++) {
+                ctx.fillText(lines[i], padding, padding + (i * lineHeight));
+            }
+        }
+
+        // ৬. রিডিং উইন্ডো ওপেন করা
+        function openReadingView(id) {
+            const item = localDatabase.find(x => x.id === id);
+            if (!item) return;
+
+            document.getElementById('modalCategory').innerText = item.category || 'General';
+            document.getElementById('modalTitle').innerText = item.title || 'Untitled';
+            
+            const modal = document.getElementById('readingModal');
+            modal.classList.remove('hidden');
+            
+            // ক্যানভাসে লেখা রেন্ডার করা
+            drawTextOnCanvas(item.content || '');
+            
+            // স্মুথলি স্ক্রোল করে ক্যানভাসে নিয়ে যাওয়া
+            modal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function closeReadingView() {
+            document.getElementById('readingModal').classList.add('hidden');
+        }
+
+        // ৭. অ্যান্টি-কপি ও অ্যান্টি-স্ক্রিনশট সিকিউরিটি গার্ডস 
+        document.addEventListener('contextmenu', e => e.preventDefault()); // রাইট ক্লিক ডিজেবল
+
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+C, Ctrl+U, Ctrl+S, Ctrl+P, Ctrl+A এবং F12 লক করা
+            if (
+                e.ctrlKey && (e.key === 'c' || e.key === 'u' || e.key === 's' || e.key === 'p' || e.key === 'a') || 
+                e.key === 'F12'
+            ) {
+                e.preventDefault();
+                alert("Security Protection: Action not allowed!");
+                return false;
+            }
+        });
+
+        // লং প্রেস বা মোবাইল টাচ হোল্ড সিকিউরিটি
+        window.oncontextmenu = function() { return false; }
+
+        // লাইভ সার্চের জন্য ইভেন্ট লিসেনার
+        document.getElementById('searchInput').addEventListener('input', renderTopics);
+
+        // উইন্ডো লোড হওয়ার সাথে সাথে সুপাবেস কানেক্ট করা হবে
+        window.onload = function() {
+            fetchWritingsFromSupabase();
+        }
+    </script>
+</body>
+  </html>
+  
