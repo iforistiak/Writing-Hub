@@ -90,209 +90,234 @@
     </footer>
 
     <script>
-        // ১. সুপাবেস ক্রেডেনশিয়ালস কনফিগারেশন 
-        // (এখানে আপনার অরিজিনাল Supabase URL এবং Anon Key বসিয়ে দিন)
-        const SUPABASE_URL = "mnbxgedmzgejxjmnkapu"; // শেষে কোনো স্ল্যাশ (/) হবে না
-        const SUPABASE_ANON_KEY = "sb_publishable_-MhZk-7LffdsK-IM_Of32A_0HRliIcv)";
+    // =========================================================================
+    // ✅ আপনার দেওয়া ক্রেডেন্সিয়ালস ফিক্সড করা হয়েছে
+    // =========================================================================
+    const SUPABASE_URL = "https://mnbxgedmzgejxjmnkapu.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uYnhnZWRtemdlanhqbW5rYXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3OTEwMzIsImV4cCI6MjA5NTM2NzAzMn0.toMMYYoa6ZEo62WBiNNsiolnodBJA9PYmZ2mZWZbqxI";
+    
+    let supabase;
+    let localDatabase = [];
+    let currentCategory = "All";
+    let isSecurityActive = false; // ডিবাগিং এর জন্য প্রথমে সিকিউরিটি অফ থাকবে
 
-        
-        // সুপাবেস ক্লায়েন্ট ইনিশিয়েট করা
-        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // ১. সুপাবেস কানেক্ট এবং ডেটা ফেচ করার ফাংশন
+    async function fetchWritingsFromSupabase() {
+        const spinner = document.getElementById('loadingSpinner');
+        const container = document.getElementById('topicsContainer');
+        const statusBadge = document.getElementById('dbStatus');
 
-        // গ্লোবাল ভেরিয়েবল যেখানে ডেটাবেজের ডেটা জমা থাকবে
-        let localDatabase = [];
-        let currentCategory = "All";
+        try {
+            // সুপাবেস ক্লায়েন্ট ইনিশিয়েট
+            supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // ২. সুপাবেস থেকে লাইভ ডেটা ফেচ (Fetch) করার ফাংশন
-        async function fetchWritingsFromSupabase() {
-            const spinner = document.getElementById('loadingSpinner');
-            const container = document.getElementById('topicsContainer');
+            console.log("Connecting to Supabase...");
+            const { data, error } = await supabase
+                .from('writings')
+                .select('id, title, category, content');
 
-            try {
-                // 'writings' টেবিল থেকে id, title, category, content কলাম তুলে আনা
-                const { data, error } = await supabase
-                    .from('writings')
-                    .select('id, title, category, content');
+            if (error) throw error;
 
-                if (error) throw error;
-
-                // সুপাবেস থেকে আসা ডেটা আমাদের লোকাল অ্যারেতে সেভ করা
-                localDatabase = data || [];
-                
-                // লোডিং স্পিনার হাইড করে মেইন কন্টেন্ট শো করা
-                spinner.classList.add('hidden');
-                container.classList.remove('hidden');
-
-                // প্রথমবার ডেটা রেন্ডার করা
-                renderTopics();
-
-            } catch (error) {
-                console.error("Database connection failed:", error.message);
-                spinner.innerHTML = `<p class="text-sm text-red-500 font-medium">Failed to load database. Please check your Supabase Keys or RLS policy.</p>`;
-            }
-        }
-
-        // ৩. সার্চ ও ক্যাটাগরি ফিল্টার করার মেইন ফ্রন্ট-এন্ড ফাংশন
-        function renderTopics() {
-            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
-            const container = document.getElementById('topicsContainer');
-            const noData = document.getElementById('noDataMessage');
+            // লাইভ ডেটা লোকাল ভেরিয়েবলে স্টোর করা
+            localDatabase = data || [];
+            console.log("Data successfully loaded from Supabase:", localDatabase);
             
-            // ফিল্টারিং লজিক
-            const filtered = localDatabase.filter(item => {
-                const matchesSearch = item.title && item.title.toLowerCase().includes(searchQuery);
-                const matchesCat = currentCategory === "All" || item.category === currentCategory;
-                return matchesSearch && matchesCat;
-            });
+            // ইন্টারফেস আপডেট
+            spinner.classList.add('hidden');
+            container.classList.remove('hidden');
+            statusBadge.innerText = "Connected";
+            statusBadge.className = "text-xs bg-green-50 text-green-600 px-2.5 py-1 rounded-full font-medium border border-green-100";
 
-            // আগের কার্ডগুলো ক্লিন করা
-            container.innerHTML = "";
-
-            if (filtered.length === 0) {
-                noData.classList.remove('hidden');
-                return;
-            } else {
-                noData.classList.add('hidden');
-            }
-
-            // ডায়নামিক কার্ড রেন্ডারিং
-            filtered.forEach(item => {
-                const card = document.createElement('div');
-                card.className = "bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer flex flex-col justify-between";
-                card.setAttribute('onclick', `openReadingView(${item.id})`);
-                
-                // কন্টেন্ট এর প্রথম কয়েকটা লাইন প্রিভিউ আকারে দেখানোর জন্য সাবস্ট্রিং ট্রিম
-                const previewText = item.content ? item.content.substring(0, 100) + '...' : '';
-
-                card.innerHTML = `
-                    <div>
-                        <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-wider">${item.category || 'General'}</span>
-                        <h4 class="text-lg font-bold text-gray-800 mt-2">${item.title || 'Untitled'}</h4>
-                        <p class="text-sm text-gray-400 mt-1 line-clamp-2">${previewText}</p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-gray-50 flex items-center text-xs font-medium text-indigo-600 hover:text-indigo-700">
-                        Click to Read Inside 
-                        <svg class="w-3.5 h-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        // ৪. ক্যাটাগরি ট্যাব পরিবর্তন
-        function filterCategory(cat) {
-            currentCategory = cat;
-            const buttons = document.querySelectorAll('.cat-btn');
-            buttons.forEach(btn => {
-                if (btn.innerText === cat) {
-                    btn.className = "cat-btn px-4 py-1.5 rounded-lg text-sm font-medium bg-indigo-600 text-white shadow-sm";
-                } else {
-                    btn.className = "cat-btn px-4 py-1.5 rounded-lg text-sm font-medium bg-white text-gray-600 border border-gray-200 hover:bg-gray-50";
-                }
-            });
+            // প্রথমবার ডেটা স্ক্রিনে দেখানো
             renderTopics();
+
+        } catch (error) {
+            console.error("Database connection failed:", error);
+            spinner.innerHTML = `
+                <div class="text-red-500 p-4 bg-red-50 rounded-xl max-w-md mx-auto text-left border border-red-200">
+                    <p class="font-bold text-sm mb-1">❌ কানেকশন ব্যর্থ হয়েছে!</p>
+                    <p class="text-xs text-gray-600 mb-2">সম্ভবত Supabase-এ RLS Policy বা টেবিল তৈরি করা হয়নি।</p>
+                    <p class="text-xs font-mono bg-white p-2 rounded border text-red-600">${error.message || error}</p>
+                </div>
+            `;
+            statusBadge.innerText = "Error";
+            statusBadge.className = "text-xs bg-red-50 text-red-600 px-2.5 py-1 rounded-full font-medium border border-red-100";
         }
+    }
 
-        // ৫. ক্যানভাসে টেক্সট রেন্ডার করার মেথড (Wrap text support)
-        function drawTextOnCanvas(text) {
-            const canvas = document.getElementById('textCanvas');
-            const ctx = canvas.getContext('2d');
+    // ২. লাইভ ফিল্টারিং ও কার্ড রেন্ডার করার ফাংশন
+    function renderTopics() {
+        const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+        const container = document.getElementById('topicsContainer');
+        const noData = document.getElementById('noDataMessage');
+        
+        // ফিল্টারিং অ্যালগরিদম (বানানের ছোট-বড় অক্ষর ফিক্সড)
+        const filtered = localDatabase.filter(item => {
+            const itemTitle = item.title ? item.title.toLowerCase() : "";
+            const itemCategory = item.category ? item.category.toLowerCase() : "";
             
-            const maxWidth = 700; 
-            const lineHeight = 28;
-            const padding = 30;
+            const matchesSearch = itemTitle.includes(searchQuery);
+            const matchesCat = currentCategory === "All" || itemCategory === currentCategory.toLowerCase();
             
-            // নতুন লাইনের (\n) টেক্সট প্রসেসিং
-            const words = text.replace(/\n/g, " \n ").split(" ");
-            let lines = [];
-            let currentLine = "";
-
-            ctx.font = "16px Inter, system-ui, Arial"; 
-
-            for (let n = 0; n < words.length; n++) {
-                if (words[n] === "\n") {
-                    lines.push(currentLine);
-                    currentLine = "";
-                    continue;
-                }
-                let testLine = currentLine + words[n] + " ";
-                let metrics = ctx.measureText(testLine);
-                let testWidth = metrics.width;
-                if (testWidth > (maxWidth - padding * 2) && n > 0) {
-                    lines.push(currentLine);
-                    currentLine = words[n] + " ";
-                } else {
-                    currentLine = testLine;
-                }
-            }
-            lines.push(currentLine);
-
-            // ডায়নামিক হাইট ক্যালকুলেশন
-            canvas.width = maxWidth;
-            canvas.height = (lines.length * lineHeight) + (padding * 2);
-
-            // ব্যাকগ্রাউন্ড পেইন্ট
-            ctx.fillStyle = "#f9fafb";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // টেক্সট ড্রয়িং স্টাইল
-            ctx.font = "16px Inter, system-ui, Arial";
-            ctx.fillStyle = "#1f2937"; 
-            ctx.textBaseline = "top";
-
-            for (let i = 0; i < lines.length; i++) {
-                ctx.fillText(lines[i], padding, padding + (i * lineHeight));
-            }
-        }
-
-        // ৬. রিডিং উইন্ডো ওপেন করা
-        function openReadingView(id) {
-            const item = localDatabase.find(x => x.id === id);
-            if (!item) return;
-
-            document.getElementById('modalCategory').innerText = item.category || 'General';
-            document.getElementById('modalTitle').innerText = item.title || 'Untitled';
-            
-            const modal = document.getElementById('readingModal');
-            modal.classList.remove('hidden');
-            
-            // ক্যানভাসে লেখা রেন্ডার করা
-            drawTextOnCanvas(item.content || '');
-            
-            // স্মুথলি স্ক্রোল করে ক্যানভাসে নিয়ে যাওয়া
-            modal.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        function closeReadingView() {
-            document.getElementById('readingModal').classList.add('hidden');
-        }
-
-        // ৭. অ্যান্টি-কপি ও অ্যান্টি-স্ক্রিনশট সিকিউরিটি গার্ডস 
-        document.addEventListener('contextmenu', e => e.preventDefault()); // রাইট ক্লিক ডিজেবল
-
-        document.addEventListener('keydown', (e) => {
-            // Ctrl+C, Ctrl+U, Ctrl+S, Ctrl+P, Ctrl+A এবং F12 লক করা
-            if (
-                e.ctrlKey && (e.key === 'c' || e.key === 'u' || e.key === 's' || e.key === 'p' || e.key === 'a') || 
-                e.key === 'F12'
-            ) {
-                e.preventDefault();
-                alert("Security Protection: Action not allowed!");
-                return false;
-            }
+            return matchesSearch && matchesCat;
         });
 
-        // লং প্রেস বা মোবাইল টাচ হোল্ড সিকিউরিটি
-        window.oncontextmenu = function() { return false; }
+        container.innerHTML = "";
 
-        // লাইভ সার্চের জন্য ইভেন্ট লিসেনার
-        document.getElementById('searchInput').addEventListener('input', renderTopics);
-
-        // উইন্ডো লোড হওয়ার সাথে সাথে সুপাবেস কানেক্ট করা হবে
-        window.onload = function() {
-            fetchWritingsFromSupabase();
+        if (filtered.length === 0) {
+            noData.classList.remove('hidden');
+            return;
+        } else {
+            noData.classList.add('hidden');
         }
-    </script>
+
+        // ডাইনামিক কার্ড জেনারেট করা
+        filtered.forEach(item => {
+            const card = document.createElement('div');
+            card.className = "bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-300 hover:scale-[1.01] transition-all duration-200 cursor-pointer flex flex-col justify-between";
+            card.setAttribute('onclick', `openReadingView(${item.id})`);
+            
+            const previewText = item.content ? item.content.substring(0, 90) + '...' : 'No content available.';
+
+            card.innerHTML = `
+                <div>
+                    <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg uppercase tracking-wider">${item.category || 'General'}</span>
+                    <h4 class="text-lg font-bold text-gray-800 mt-3">${item.title || 'Untitled'}</h4>
+                    <p class="text-sm text-gray-400 mt-1 line-clamp-2">${previewText}</p>
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-100 flex items-center text-xs font-semibold text-indigo-600">
+                    Click to Read Inside 
+                    <svg class="w-3.5 h-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // ৩. ক্যাটাগরি ট্যাব পরিবর্তন ও অ্যাক্টিভ ক্লাস ম্যানেজমেন্ট
+    function filterCategory(cat) {
+        currentCategory = cat;
+        
+        // সব বাটনের ডিজাইন রিসেট করে ডিফল্ট (Inactive) করা
+        const buttons = document.querySelectorAll('.cat-btn');
+        buttons.forEach(btn => {
+            btn.className = "cat-btn px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 bg-white text-gray-600 border border-gray-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300";
+        });
+
+        // শুধুমাত্র ক্লিক করা নির্দিষ্ট বাটনটিকে অ্যাক্টিভ (Active Blue) করা
+        const activeBtn = document.getElementById(`btn-${cat}`);
+        if(activeBtn) {
+            activeBtn.className = "cat-btn px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-md ring-2 ring-indigo-600 ring-offset-2";
+        }
+
+        // ফিল্টার অনুযায়ী ডেটা রি-রেন্ডার করা
+        renderTopics();
+    }
+
+    // ৪. ক্যানভাসে টেক্সট রেন্ডার করা (Wrap text logic)
+    function drawTextOnCanvas(text) {
+        const canvas = document.getElementById('textCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const maxWidth = 720; 
+        const lineHeight = 30;
+        const padding = 35;
+        
+        const words = text.replace(/\n/g, " \n ").split(" ");
+        let lines = [];
+        let currentLine = "";
+
+        ctx.font = "16px Inter, system-ui, -apple-system, sans-serif"; 
+
+        for (let n = 0; n < words.length; n++) {
+            if (words[n] === "\n") {
+                lines.push(currentLine);
+                currentLine = "";
+                continue;
+            }
+            let testLine = currentLine + words[n] + " ";
+            let metrics = ctx.measureText(testLine);
+            let testWidth = metrics.width;
+            if (testWidth > (maxWidth - padding * 2) && n > 0) {
+                lines.push(currentLine);
+                currentLine = words[n] + " ";
+            } else {
+                currentLine = testLine;
+            }
+        }
+        lines.push(currentLine);
+
+        canvas.width = maxWidth;
+        canvas.height = (lines.length * lineHeight) + (padding * 2);
+
+        // ক্যানভাস ব্যাকগ্রাউন্ড
+        ctx.fillStyle = "#f9fafb";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // ক্যানভাস টেক্সট স্টাইল
+        ctx.font = "16px Inter, system-ui, -apple-system, sans-serif";
+        ctx.fillStyle = "#1f2937"; 
+        ctx.textBaseline = "top";
+
+        for (let i = 0; i < lines.length; i++) {
+            ctx.fillText(lines[i], padding, padding + (i * lineHeight));
+        }
+    }
+
+    // ৫. রিডিং উইন্ডো কন্ট্রোল
+    function openReadingView(id) {
+        const item = localDatabase.find(x => x.id === id);
+        if (!item) return;
+
+        document.getElementById('modalCategory').innerText = item.category || 'General';
+        document.getElementById('modalTitle').innerText = item.title || 'Untitled';
+        
+        const modal = document.getElementById('readingModal');
+        modal.classList.remove('hidden');
+        
+        drawTextOnCanvas(item.content || '');
+        modal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function closeReadingView() {
+        document.getElementById('readingModal').classList.add('hidden');
+    }
+
+    // ৬. সিকিউরিটি গার্ডস (৫ সেকেন্ড পর চালু হবে যাতে শুরুতে F12 দিয়ে এরর চেক করা যায়)
+    setTimeout(() => {
+        isSecurityActive = true;
+        console.log("Anti-Copy Security Protection Enabled.");
+    }, 5000); 
+
+    document.addEventListener('contextmenu', e => {
+        if (isSecurityActive) e.preventDefault();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (!isSecurityActive) return;
+
+        if (
+            e.ctrlKey && (e.key === 'c' || e.key === 'u' || e.key === 's' || e.key === 'p' || e.key === 'a') || 
+            e.key === 'F12'
+        ) {
+            e.preventDefault();
+            alert("Security Protection: This action is disabled to protect copyright content.");
+            return false;
+        }
+    });
+
+    window.oncontextmenu = function() { if (isSecurityActive) return false; }
+
+    // ইভেন্ট লিসেনার
+    document.getElementById('searchInput').addEventListener('input', renderTopics);
+
+    // উইন্ডো লোডের সাথে সাথে ডেটা নিয়ে আসা
+    window.onload = function() {
+        fetchWritingsFromSupabase();
+    }
+                </script>
+    
+    
 </body>
   </html>
   
