@@ -92,8 +92,9 @@
     <script>
         // ১. সুপাবেস ক্রেডেনশিয়ালস কনফিগারেশন 
         // (এখানে আপনার অরিজিনাল Supabase URL এবং Anon Key বসিয়ে দিন)
-        const SUPABASE_URL = "mnbxgedmzgejxjmnkapu";
-        const SUPABASE_ANON_KEY = "sb_publishable_-MhZk-7LffdsK-IM_Of32A_0HRliIcv";
+        const SUPABASE_URL = "mnbxgedmzgejxjmnkapu"; // শেষে কোনো স্ল্যাশ (/) হবে না
+        const SUPABASE_ANON_KEY = "sb_publishable_-MhZk-7LffdsK-IM_Of32A_0HRliIcv)";
+
         
         // সুপাবেস ক্লায়েন্ট ইনিশিয়েট করা
         const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
