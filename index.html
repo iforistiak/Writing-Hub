@@ -4,13 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Premium English Writing Hub</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        /* 🌐 গুগল ফন্টস ইমপোর্ট */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap');
         
         body {
-            font-family: 'Inter', system-ui, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         }
+        
+        /* 🔒 এন্টি-কপি ও সিকিউরিটি লেয়ার */
         .secure-mode {
             -webkit-user-select: none;
             -moz-user-select: none;
@@ -20,173 +28,205 @@
         @media print {
             body { display: none !important; }
         }
-        .modal-animate {
-            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        
+        .smooth-transition {
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .card-glow:hover {
+            box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.12);
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-4px);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
         }
     </style>
 </head>
-<body class="bg-[#f8fafc] text-slate-900 min-h-screen flex flex-col secure-mode antialiased">
+<body class="text-slate-900 min-h-screen flex flex-col secure-mode antialiased">
 
-    <header class="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+    <div id="welcomeModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/50 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] p-8 text-center border border-slate-100">
+            <div class="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-5 text-indigo-600 shadow-sm border border-indigo-100/50">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+            </div>
+            <h3 class="text-2xl font-extrabold text-slate-900 tracking-tight">স্বাগতম WritingHub-এ!</h3>
+            <p class="mt-3 text-slate-500 text-sm leading-relaxed">আপনার একাডেমিক রাইটিং সহজ ও সুরক্ষিতভাবে পড়ার জন্য লাইব্রেরিটি সম্পূর্ণ রেডি। ব্রাউজ করুন এবং আপনার প্রয়োজনীয় টপিকটি খুঁজে নিন।</p>
+            
+            <button onclick="this.closest('#welcomeModal').remove();" class="mt-6 w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-600/20 active:scale-[0.98] transition-all">
+                Explore Library
+            </button>
+        </div>
+    </div>
+
+    <header class="bg-white/75 backdrop-blur-lg border-b border-slate-200/50 sticky top-0 z-40 shadow-[0_2px_10px_rgba(0,0,0,0.01)]">
         <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-                Writing<span class="text-slate-800 font-light">Hub.</span>
+            <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 bg-clip-text text-transparent">
+                Writing<span class="text-slate-800 font-medium">Hub.</span>
             </h1>
-            <span id="dbStatus" class="text-[11px] bg-amber-50 text-amber-700 px-3 py-1 rounded-full font-medium border border-amber-100 animate-pulse">Connecting...</span>
+            <span id="dbStatus" class="text-[11px] bg-amber-50 text-amber-700 px-3 py-1 rounded-full font-semibold border border-amber-100/70 shadow-sm animate-pulse">Connecting Supabase...</span>
         </div>
     </header>
 
-    <main class="flex-grow max-w-4xl w-full mx-auto px-6 py-10">
+    <main class="flex-grow max-w-4xl w-full mx-auto px-6 py-12">
         
         <div class="text-center mb-10">
-            <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl">English Writing Library</h2>
-            <p class="mt-2 text-slate-400 text-sm font-normal">একটি ফ্রেশ এবং রিডেবল এনভায়রনমেন্টে আপনার প্রয়োজনীয় রাইটিং খুঁজুন।</p>
+            <h2 class="text-4xl font-extrabold text-slate-900 tracking-tight sm:text-5xl bg-gradient-to-b from-slate-900 to-slate-700 bg-clip-text text-transparent">English Writing Library</h2>
+            <p class="mt-3 text-slate-400 text-sm font-medium tracking-wide">স্মার্ট ফিল্টারিং এবং সুরক্ষিত ক্যানভাস রিডিং এক্সপেরিয়েন্স।</p>
         </div>
 
         <div class="max-w-xl mx-auto mb-10 relative group">
-            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 smooth-transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
-            <input type="text" id="searchInput" placeholder="টপিকের নাম লিখে সার্চ করুন..." 
-                class="w-full pl-11 pr-5 py-3.5 bg-white border border-slate-200 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.02)] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 placeholder-slate-400 text-sm transition-all">
+            <input type="text" id="searchInput" placeholder="টপিক বা ক্যাটাগরির নাম লিখে সার্চ করুন..." 
+                class="w-full pl-12 pr-5 py-4 bg-white border border-slate-200 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.02)] focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-800 placeholder-slate-400 text-sm smooth-transition">
         </div>
 
-        <div class="mb-8">
-            <div class="flex flex-wrap gap-2 justify-center" id="categoryTabs">
-                <div class="inline-block animate-pulse text-xs text-slate-400">Loading categories...</div>
-            </div>
+        <div class="mb-12">
+            <div class="flex flex-wrap gap-2.5 justify-center" id="categoryTabs">
+                </div>
         </div>
 
-        <div id="loadingSpinner" class="text-center py-16">
-            <div class="inline-block animate-spin rounded-full h-7 w-7 border-2 border-indigo-600 border-t-transparent"></div>
-            <p class="text-xs text-slate-400 mt-3 font-medium tracking-wide">লাইব্রেরি লোড হচ্ছে...</p>
-        </div>
-
-        <div id="topicsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-5 hidden">
+        <div id="topicsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-6" style="display: grid;">
             </div>
 
-        <div id="noDataMessage" class="hidden text-center py-16 text-slate-400">
-            <p class="text-sm font-medium">দুঃখিত, এই ক্যাটাগরিতে বা এই নামে কোনো কন্টেন্ট খুঁজে পাওয়া যায়নি।</p>
+        <div id="noDataMessage" class="hidden text-center py-20 bg-white rounded-3xl border border-slate-200/60 p-8 shadow-sm">
+            <p class="text-sm font-semibold text-slate-400">দুঃখিত, আপনার খোঁজা কন্টেন্টটি লাইব্রেরিতে নেই।</p>
         </div>
 
-        <div id="readingModal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
-            <div class="bg-white w-full max-w-2xl rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden transform scale-95 modal-animate max-h-[90vh] flex flex-col">
+        <div id="readingModal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 opacity-0 smooth-transition duration-300">
+            <div class="bg-white w-full max-w-2xl rounded-3xl shadow-[0_30px_70px_rgba(0,0,0,0.18)] overflow-hidden transform scale-95 smooth-transition max-h-[85vh] flex flex-col border border-slate-100">
                 
-                <div class="p-6 border-b border-slate-100 flex justify-between items-start shrink-0">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-start shrink-0 bg-white">
                     <div>
-                        <span id="modalCategory" class="text-[10px] font-bold uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">Category</span>
-                        <h3 id="modalTitle" class="text-xl font-bold text-slate-900 mt-2 tracking-tight">Topic Title</h3>
+                        <span id="modalCategory" class="text-[10px] font-bold uppercase tracking-widest text-indigo-600 bg-indigo-50/80 border border-indigo-100 px-3 py-1 rounded-md">Category</span>
+                        <h3 id="modalTitle" class="text-2xl font-extrabold text-slate-900 mt-3 tracking-tight leading-snug">Topic Title</h3>
                     </div>
-                    <button onclick="closeReadingView()" class="text-slate-400 hover:text-slate-800 p-2 rounded-full hover:bg-slate-50 border border-slate-100 transition-all shadow-sm">
+                    <button onclick="closeReadingView()" class="text-slate-400 hover:text-slate-800 p-2.5 rounded-full hover:bg-slate-50 border border-slate-200/60 smooth-transition shadow-sm bg-white active:scale-95">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
                 
-                <div class="p-6 bg-slate-50/50 flex-grow overflow-y-auto flex justify-center items-start">
+                <div class="p-8 bg-slate-50/60 flex-grow overflow-y-auto flex justify-center items-start border-b border-slate-100">
                     <canvas id="textCanvas" class="max-w-full block bg-transparent"></canvas>
                 </div>
                 
-                <div class="px-6 py-3 bg-white border-t border-slate-100 text-center shrink-0">
-                    <p class="text-[10px] font-medium text-slate-400 tracking-wider">⚠️ Anti-copy Protection Layer Active.</p>
+                <div class="px-6 py-4 bg-white text-center shrink-0">
+                    <p class="text-[10px] font-semibold text-slate-400 tracking-wider flex items-center justify-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        Anti-copy Protection Layer Active.
+                    </p>
                 </div>
             </div>
         </div>
 
     </main>
 
-    <footer class="bg-white border-t border-slate-100 py-5 text-center text-xs text-slate-400 mt-auto font-medium tracking-wide">
-        &copy; 2026 WritingHub Library. Optimized for Live Synced UI.
+    <footer class="bg-white border-t border-slate-200/60 py-6 text-center text-xs text-slate-400 mt-auto font-medium tracking-wide shadow-sm">
+        &copy; 2026 WritingHub Library. All rights reserved.
     </footer>
 
     <script>
-        const PROJECT_ID = "mnbxgedmzgejxjmnkapu";
-        const ANON_KEY = "sb_publishable_-MhZk-7LffdsK-IM_Of32A_0HRliIcv";
-        const REST_API_URL = `https://${PROJECT_ID}.supabase.co/rest/v1/writings?select=id,title,category,content`;
+        // 🛠️ এখানে আপনার আসল Supabase প্রজেক্ট ক্রেডেনশিয়াল দিন
+        const SUPABASE_URL = "https://mnbxgedmzgejxjmnkapu.supabase.co"; 
+        const SUPABASE_ANON_KEY = "sb_publishable_-MhZk-7LffdsK-IM_Of32A_0HRliIcv"; 
 
-        let localDatabase = [];
+        // অফিশিয়াল ক্লায়েন্ট ইনিশিয়েলাইজেশন
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let databaseAssets = [];
         let currentCategory = "All";
 
-        // ১. ডাটাবেজ রিকোয়েস্ট
-        async function loadDatabaseFromSupabase() {
-            const spinner = document.getElementById('loadingSpinner');
-            const container = document.getElementById('topicsContainer');
+        // 🔄 লাইভ ডাটাবেজ থেকে রিয়েল কন্টেন্ট ফেচ করার প্রোডাকশন লজিক
+        async function fetchLiveDatabase() {
             const statusBadge = document.getElementById('dbStatus');
-
             try {
-                const response = await fetch(REST_API_URL, {
-                    method: 'GET',
-                    headers: {
-                        'apikey': ANON_KEY,
-                        'Authorization': `Bearer ${ANON_KEY}`
-                    }
-                });
+                // সরাসরি 'writings' টেবিল থেকে কন্টেন্ট পুল করা হচ্ছে
+                const { data, error } = await _supabase
+                    .from('writings')
+                    .select('id, title, category, content');
 
-                if (!response.ok) throw new Error();
+                if (error) throw error;
 
-                const data = await response.json();
-                localDatabase = data || [];
+                databaseAssets = data || [];
 
-                spinner.classList.add('hidden');
-                container.classList.remove('hidden');
-                statusBadge.innerText = "System Live";
-                statusBadge.className = "text-[11px] bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full font-medium border border-emerald-100";
+                // সফলভাবে কানেক্ট হলে স্ট্যাটাস ব্যাজ আপডেট হবে
+                if (statusBadge) {
+                    statusBadge.innerText = "Live Server Activate";
+                    statusBadge.className = "text-[11px] bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full font-semibold border border-emerald-100/70 shadow-sm";
+                }
 
-                // ডাটাবেজ থেকে বাটন জেনারেট এবং কনটেন্ট রেন্ডার
-                generateCategoryButtons();
+                // ইন্টারফেস জেনারেশন রান করা
+                generateDynamicCategoryButtons();
                 renderTopics();
 
-            } catch (error) {
-                spinner.innerHTML = `<p class="text-xs text-red-500 font-medium">কানেকশন এস্টাবলিশ করা সম্ভব হয়নি। আবার রিফ্রেশ করুন।</p>`;
+            } catch (err) {
+                console.error("Supabase SDK Connection Error:", err.message);
+                if (statusBadge) {
+                    statusBadge.innerText = "Connection Failed";
+                    statusBadge.className = "text-[11px] bg-red-50 text-red-700 px-3 py-1 rounded-full font-semibold border border-red-100 shadow-sm";
+                }
             }
         }
 
-        // 🛠️ ২. অটোমেটিক বাটন তৈরির লজিক (Dynamic Button Generation)
-        function generateCategoryButtons() {
+        // 🗂️ ডাটাবেজ স্ক্যান করে অটোমেটিক ফিল্টার বাটন জেনারেশন
+        function generateDynamicCategoryButtons() {
             const tabsContainer = document.getElementById('categoryTabs');
-            tabsContainer.innerHTML = ""; // আগের লোডার টেক্সট ক্লিয়ার করা
+            if(!tabsContainer) return;
+            tabsContainer.innerHTML = "";
 
-            // ডাটাবেজের সব কন্টেন্ট থেকে ইউনিক ক্যাটাগরি ফিল্টার করা
             const uniqueCategories = new Set();
-            localDatabase.forEach(item => {
+            databaseAssets.forEach(item => {
                 if (item.category) {
-                    // প্রথম অক্ষর বড় করে বাকিটা প্রফেশনাল ফরমেটে রাখা
                     const formattedCat = item.category.trim().charAt(0).toUpperCase() + item.category.trim().slice(1).toLowerCase();
                     uniqueCategories.add(formattedCat);
                 }
             });
 
-            // 'All' বাটন তৈরি করা (ডিফল্ট একটিভ)
+            // Master Button
             const allBtn = document.createElement('button');
             allBtn.id = "btn-All";
-            allBtn.innerText = "All";
-            allBtn.className = "cat-btn px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-slate-900 text-white shadow-sm";
+            allBtn.innerText = "All Items";
+            allBtn.className = "cat-btn px-5 py-2.5 rounded-xl text-xs font-bold smooth-transition bg-slate-900 text-white shadow-md shadow-slate-900/10 m-1";
             allBtn.onclick = () => filterCategory('All');
             tabsContainer.appendChild(allBtn);
 
-            // ডাটাবেজ থেকে পাওয়া ইউনিক ক্যাটাগরিগুলোর বাটন স্বয়ংক্রিয়ভাবে তৈরি করা
+            // লাইভ ডাটাবেজের অনন্য ক্যাটাগরি অনুসারে তৈরি হওয়া বাটন
             uniqueCategories.forEach(cat => {
                 const btn = document.createElement('button');
                 btn.id = `btn-${cat}`;
                 btn.innerText = cat;
-                btn.className = "cat-btn px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50";
+                btn.className = "cat-btn px-5 py-2.5 rounded-xl text-xs font-semibold smooth-transition bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 m-1";
                 btn.onclick = () => filterCategory(cat);
                 tabsContainer.appendChild(btn);
             });
         }
 
-        // ৩. কন্টেন্ট লিস্ট গ্রিড রেন্ডারিং
+        // 📄 লাইভ কন্টেন্ট লিস্ট গ্রিড রেন্ডারিং এবং সার্চ ফিল্টার ইঞ্জিন
         function renderTopics() {
             const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
             const container = document.getElementById('topicsContainer');
             const noData = document.getElementById('noDataMessage');
+            if(!container) return;
             
-            const filtered = localDatabase.filter(item => {
+            const filtered = databaseAssets.filter(item => {
                 const itemTitle = item.title ? item.title.toLowerCase() : "";
                 const itemCategory = item.category ? item.category.toLowerCase().trim() : "";
                 
-                const matchesSearch = itemTitle.includes(searchQuery);
+                const matchesSearch = itemTitle.includes(searchQuery) || itemCategory.includes(searchQuery);
                 const matchesCat = currentCategory === "All" || itemCategory === currentCategory.toLowerCase().trim();
                 
                 return matchesSearch && matchesCat;
@@ -195,65 +235,62 @@
             container.innerHTML = "";
 
             if (filtered.length === 0) {
-                container.classList.add('hidden');
-                noData.classList.remove('hidden');
+                container.style.display = 'none';
+                if(noData) noData.classList.remove('hidden');
                 return;
             } else {
-                noData.classList.add('hidden');
-                container.classList.remove('hidden');
+                if(noData) noData.classList.add('hidden');
+                container.style.display = 'grid';
             }
 
             filtered.forEach(item => {
                 const card = document.createElement('div');
-                card.className = "bg-white p-5 rounded-2xl border border-slate-200/60 shadow-[0_2px_4px_rgba(0,0,0,0.01)] cursor-pointer flex flex-col justify-between hover:border-slate-300 hover:shadow-[0_6px_20px_rgba(0,0,0,0.03)] transition-all duration-200 group";
+                card.className = "bg-white p-6 rounded-2xl border border-slate-200/70 cursor-pointer flex flex-col justify-between smooth-transition card-glow group shadow-[0_2px_8px_rgba(0,0,0,0.01)]";
                 card.setAttribute('onclick', `openReadingView(${item.id})`);
                 
-                const previewText = item.content ? item.content.substring(0, 85) + '...' : 'No content available.';
+                const previewText = item.content ? item.content.substring(0, 90) + '...' : 'No content available.';
 
                 card.innerHTML = `
                     <div>
-                        <span class="text-[9px] font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md uppercase tracking-wider">${item.category || 'General'}</span>
-                        <h4 class="text-[15px] font-bold text-slate-800 mt-3 group-hover:text-indigo-600 transition-colors">${item.title || 'Untitled'}</h4>
-                        <p class="text-xs text-slate-400 mt-2 leading-relaxed font-light">${previewText}</p>
+                        <span class="text-[9px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100/50 px-2.5 py-1 rounded-md uppercase tracking-wider">${item.category}</span>
+                        <h4 class="text-base font-bold text-slate-800 mt-4 group-hover:text-indigo-600 smooth-transition tracking-tight">${item.title}</h4>
+                        <p class="text-xs text-slate-400 mt-2 leading-relaxed font-normal">${previewText}</p>
                     </div>
-                    <div class="mt-5 pt-3 border-t border-slate-50 flex items-center text-xs font-semibold text-indigo-600">
-                        Read Topic <span class="ml-1 group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    <div class="mt-6 pt-4 border-t border-slate-50 flex items-center text-xs font-bold text-indigo-600">
+                        Read Content <span class="ml-1 group-hover:translate-x-1.5 smooth-transition">&rarr;</span>
                     </div>
                 `;
                 container.appendChild(card);
             });
         }
 
-        // ৪. ক্যাটাগরি বাটন ফিল্টার লজিক
         function filterCategory(cat) {
             currentCategory = cat;
             const buttons = document.querySelectorAll('.cat-btn');
             
             buttons.forEach(btn => {
-                btn.className = "cat-btn px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50";
+                btn.className = "cat-btn px-5 py-2.5 rounded-xl text-xs font-semibold smooth-transition bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 m-1";
             });
 
             const activeBtn = document.getElementById(`btn-${cat}`);
             if(activeBtn) {
-                activeBtn.className = "cat-btn px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-slate-900 text-white shadow-sm";
+                activeBtn.className = "cat-btn px-5 py-2.5 rounded-xl text-xs font-bold smooth-transition bg-slate-900 text-white shadow-md shadow-slate-900/10 m-1";
             }
-            
             renderTopics(); 
         }
 
-        // 🎨 ৫. ক্রিস্টাল ক্লিয়ার ক্যানভাস রেন্ডারিং লজিক
+        // 🎨 ক্যানভাস রেন্ডারিং (Poppins ফন্ট আর্কিটেকচার)
         function drawTextOnCanvas(text) {
             const canvas = document.getElementById('textCanvas');
             const ctx = canvas.getContext('2d');
             
             const containerWidth = canvas.parentElement.clientWidth || 500;
-            const maxWidth = containerWidth > 650 ? 650 : containerWidth - 20; 
+            const maxWidth = containerWidth > 620 ? 620 : containerWidth - 20; 
             
-            const fontSize = 16; 
-            const lineHeight = 32; 
+            const lineHeight = 34; 
             const padding = 10;
             
-            const fontStyle = "400 16px 'Inter', system-ui, -apple-system, sans-serif";
+            const fontStyle = "400 16px 'Poppins', system-ui, sans-serif";
             ctx.font = fontStyle; 
 
             const words = text.replace(/\n/g, " \n ").split(" ");
@@ -297,42 +334,43 @@
             }
         }
 
-        // 🔓 ৬. পপআপ ওপেন সিস্টেম
         function openReadingView(id) {
-            const item = localDatabase.find(x => x.id === id);
+            const item = databaseAssets.find(x => x.id === id);
             if (!item) return;
 
-            document.getElementById('modalCategory').innerText = item.category || 'General';
-            document.getElementById('modalTitle').innerText = item.title || 'Untitled';
+            document.getElementById('modalCategory').innerText = item.category;
+            document.getElementById('modalTitle').innerText = item.title;
             
             const modal = document.getElementById('readingModal');
-            const innerBox = modal.querySelector('.modal-animate');
+            const innerBox = modal.querySelector('.smooth-transition');
             
             modal.classList.remove('hidden');
             
             setTimeout(() => {
                 drawTextOnCanvas(item.content || '');
                 modal.classList.add('opacity-100');
-                innerBox.classList.remove('scale-95');
-                innerBox.classList.add('scale-100');
+                if(innerBox) {
+                    innerBox.classList.remove('scale-95');
+                    innerBox.classList.add('scale-100');
+                }
             }, 50);
         }
 
-        // 🔒 ৭. পপআপ ক্লোজ সিস্টেম
         function closeReadingView() {
             const modal = document.getElementById('readingModal');
-            const innerBox = modal.querySelector('.modal-animate');
+            const innerBox = modal.querySelector('.smooth-transition');
             
             modal.classList.remove('opacity-100');
-            innerBox.classList.remove('scale-100');
-            innerBox.classList.add('scale-95');
-            
+            if(innerBox) {
+                innerBox.classList.remove('scale-100');
+                innerBox.classList.add('scale-95');
+            }
             setTimeout(() => {
                 modal.classList.add('hidden');
             }, 250);
         }
 
-        // কপি প্রোটেকশন সিস্টেম
+        // সিকিউরিটি লিসেনার্স
         document.addEventListener('contextmenu', e => e.preventDefault());
         window.oncontextmenu = function() { return false; }
         document.addEventListener('keydown', (e) => {
@@ -344,9 +382,8 @@
 
         document.getElementById('searchInput').addEventListener('input', renderTopics);
 
-        window.onload = function() {
-            loadDatabaseFromSupabase();
-        }
+        // লাইভ এক্সিকিউশন স্টার্ট
+        fetchLiveDatabase();
     </script>
 </body>
 </html>
