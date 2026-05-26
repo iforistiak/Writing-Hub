@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Selim English Writing Hub</title>
+    <title>Premium English Writing Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -20,7 +20,6 @@
         @media print {
             body { display: none !important; }
         }
-        /* স্মুথ অ্যানিমেশন */
         .modal-animate {
             transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
@@ -28,7 +27,7 @@
 </head>
 <body class="bg-[#f8fafc] text-slate-900 min-h-screen flex flex-col secure-mode antialiased">
 
-    <header class="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0,02)]">
+    <header class="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
         <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
             <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
                 Writing<span class="text-slate-800 font-light">Hub.</span>
@@ -54,11 +53,7 @@
 
         <div class="mb-8">
             <div class="flex flex-wrap gap-2 justify-center" id="categoryTabs">
-                <button onclick="filterCategory('All')" id="btn-All" class="cat-btn px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-slate-900 text-white shadow-sm">All</button>
-                <button onclick="filterCategory('Paragraph')" id="btn-Paragraph" class="cat-btn px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50">Paragraph</button>
-                <button onclick="filterCategory('Dialogue')" id="btn-Dialogue" class="cat-btn px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50">Dialogue</button>
-                <button onclick="filterCategory('Email')" id="btn-Email" class="cat-btn px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50">Email</button>
-                <button onclick="filterCategory('Application')" id="btn-Application" class="cat-btn px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50">Application</button>
+                <div class="inline-block animate-pulse text-xs text-slate-400">Loading categories...</div>
             </div>
         </div>
 
@@ -71,7 +66,7 @@
             </div>
 
         <div id="noDataMessage" class="hidden text-center py-16 text-slate-400">
-            <p class="text-sm font-medium">দুঃখিত, এই নামে কোনো কন্টেন্ট খুঁজে পাওয়া যায়নি।</p>
+            <p class="text-sm font-medium">দুঃখিত, এই ক্যাটাগরিতে বা এই নামে কোনো কন্টেন্ট খুঁজে পাওয়া যায়নি।</p>
         </div>
 
         <div id="readingModal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
@@ -102,7 +97,7 @@
     </main>
 
     <footer class="bg-white border-t border-slate-100 py-5 text-center text-xs text-slate-400 mt-auto font-medium tracking-wide">
-        &copy; 2026 WritingHub Library. Optimized for UI/UX.
+        &copy; 2026 WritingHub Library. Optimized for Live Synced UI.
     </footer>
 
     <script>
@@ -136,8 +131,10 @@
                 spinner.classList.add('hidden');
                 container.classList.remove('hidden');
                 statusBadge.innerText = "System Live";
-                statusBadge.className = "text-[11px] bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full font-medium border border-emerald-100 animate-none";
+                statusBadge.className = "text-[11px] bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full font-medium border border-emerald-100";
 
+                // ডাটাবেজ থেকে বাটন জেনারেট এবং কনটেন্ট রেন্ডার
+                generateCategoryButtons();
                 renderTopics();
 
             } catch (error) {
@@ -145,18 +142,52 @@
             }
         }
 
-        // ২. ক্লাসিক মেটেরিয়াল কার্ড রেন্ডারিং
+        // 🛠️ ২. অটোমেটিক বাটন তৈরির লজিক (Dynamic Button Generation)
+        function generateCategoryButtons() {
+            const tabsContainer = document.getElementById('categoryTabs');
+            tabsContainer.innerHTML = ""; // আগের লোডার টেক্সট ক্লিয়ার করা
+
+            // ডাটাবেজের সব কন্টেন্ট থেকে ইউনিক ক্যাটাগরি ফিল্টার করা
+            const uniqueCategories = new Set();
+            localDatabase.forEach(item => {
+                if (item.category) {
+                    // প্রথম অক্ষর বড় করে বাকিটা প্রফেশনাল ফরমেটে রাখা
+                    const formattedCat = item.category.trim().charAt(0).toUpperCase() + item.category.trim().slice(1).toLowerCase();
+                    uniqueCategories.add(formattedCat);
+                }
+            });
+
+            // 'All' বাটন তৈরি করা (ডিফল্ট একটিভ)
+            const allBtn = document.createElement('button');
+            allBtn.id = "btn-All";
+            allBtn.innerText = "All";
+            allBtn.className = "cat-btn px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-slate-900 text-white shadow-sm";
+            allBtn.onclick = () => filterCategory('All');
+            tabsContainer.appendChild(allBtn);
+
+            // ডাটাবেজ থেকে পাওয়া ইউনিক ক্যাটাগরিগুলোর বাটন স্বয়ংক্রিয়ভাবে তৈরি করা
+            uniqueCategories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.id = `btn-${cat}`;
+                btn.innerText = cat;
+                btn.className = "cat-btn px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50";
+                btn.onclick = () => filterCategory(cat);
+                tabsContainer.appendChild(btn);
+            });
+        }
+
+        // ৩. কন্টেন্ট লিস্ট গ্রিড রেন্ডারিং
         function renderTopics() {
-            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
             const container = document.getElementById('topicsContainer');
             const noData = document.getElementById('noDataMessage');
             
             const filtered = localDatabase.filter(item => {
                 const itemTitle = item.title ? item.title.toLowerCase() : "";
-                const itemCategory = item.category ? item.category.toLowerCase() : "";
+                const itemCategory = item.category ? item.category.toLowerCase().trim() : "";
                 
                 const matchesSearch = itemTitle.includes(searchQuery);
-                const matchesCat = currentCategory === "All" || itemCategory === currentCategory.toLowerCase();
+                const matchesCat = currentCategory === "All" || itemCategory === currentCategory.toLowerCase().trim();
                 
                 return matchesSearch && matchesCat;
             });
@@ -164,15 +195,16 @@
             container.innerHTML = "";
 
             if (filtered.length === 0) {
+                container.classList.add('hidden');
                 noData.classList.remove('hidden');
                 return;
             } else {
                 noData.classList.add('hidden');
+                container.classList.remove('hidden');
             }
 
             filtered.forEach(item => {
                 const card = document.createElement('div');
-                // ক্লিন শ্যাডো এবং প্রফেশনাল বর্ডার রেডিয়াস ট্রানজিশন
                 card.className = "bg-white p-5 rounded-2xl border border-slate-200/60 shadow-[0_2px_4px_rgba(0,0,0,0.01)] cursor-pointer flex flex-col justify-between hover:border-slate-300 hover:shadow-[0_6px_20px_rgba(0,0,0,0.03)] transition-all duration-200 group";
                 card.setAttribute('onclick', `openReadingView(${item.id})`);
                 
@@ -192,7 +224,7 @@
             });
         }
 
-        // ৩. ট্যাব ফিল্টার অ্যাক্টিভেশন কন্ট্রোল
+        // ৪. ক্যাটাগরি বাটন ফিল্টার লজিক
         function filterCategory(cat) {
             currentCategory = cat;
             const buttons = document.querySelectorAll('.cat-btn');
@@ -205,10 +237,11 @@
             if(activeBtn) {
                 activeBtn.className = "cat-btn px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-slate-900 text-white shadow-sm";
             }
-            renderTopics();
+            
+            renderTopics(); 
         }
 
-        // 🎨 ৪. ক্রিস্টাল ক্লিয়ার ক্যানভাস রেন্ডারিং লজিক (High-DPI Retina Scaling ফিক্স)
+        // 🎨 ৫. ক্রিস্টাল ক্লিয়ার ক্যানভাস রেন্ডারিং লজিক
         function drawTextOnCanvas(text) {
             const canvas = document.getElementById('textCanvas');
             const ctx = canvas.getContext('2d');
@@ -217,10 +250,9 @@
             const maxWidth = containerWidth > 650 ? 650 : containerWidth - 20; 
             
             const fontSize = 16; 
-            const lineHeight = 32; // স্পেস বাড়ানো হয়েছে পড়ার সুবিধার জন্য
+            const lineHeight = 32; 
             const padding = 10;
             
-            // ফন্ট ডেফিনিশন
             const fontStyle = "400 16px 'Inter', system-ui, -apple-system, sans-serif";
             ctx.font = fontStyle; 
 
@@ -228,7 +260,6 @@
             let lines = [];
             let currentLine = "";
 
-            // ওয়ার্ড র্যাপিং রুলস
             for (let n = 0; n < words.length; n++) {
                 if (words[n] === "\n") {
                     lines.push(currentLine);
@@ -247,33 +278,26 @@
             }
             lines.push(currentLine);
 
-            // 🛠️ HIGH-DPI/RETINA DISPLAY SCALING FIX (এর ফলে লেখা আর অস্পষ্ট দেখাবে না)
             const dpr = window.devicePixelRatio || 1;
             canvas.width = maxWidth * dpr;
             canvas.height = ((lines.length * lineHeight) + (padding * 2)) * dpr;
             
-            // স্টাইল উইডথ এবং হাইট লক করা
             canvas.style.width = maxWidth + "px";
             canvas.style.height = ((lines.length * lineHeight) + (padding * 2)) + "px";
             
-            // কন্টেক্সট স্কেল রিসেট
             ctx.scale(dpr, dpr);
-
-            // ব্যাকগ্রাউন্ড সম্পূর্ণ ট্রান্সপারেন্ট/ক্লিন রাখা
             ctx.clearRect(0, 0, maxWidth, canvas.height);
 
-            // টেক্সট রেন্ডারিং প্রোপার্টিজ
             ctx.font = fontStyle;
-            ctx.fillStyle = "#334155"; // সুদিং চারকোল কালার চোখের শান্তির জন্য
+            ctx.fillStyle = "#334155"; 
             ctx.textBaseline = "top";
 
-            // প্রতিটি লাইন স্পষ্ট করে ড্র করা
             for (let i = 0; i < lines.length; i++) {
                 ctx.fillText(lines[i], padding, padding + (i * lineHeight));
             }
         }
 
-        // 🔓 ৫. স্মুথ অ্যানিমেটেড পপআপ ওপেন সিস্টেম
+        // 🔓 ৬. পপআপ ওপেন সিস্টেম
         function openReadingView(id) {
             const item = localDatabase.find(x => x.id === id);
             if (!item) return;
@@ -286,7 +310,6 @@
             
             modal.classList.remove('hidden');
             
-            // ক্যানভাসে টেক্সট আঁকা
             setTimeout(() => {
                 drawTextOnCanvas(item.content || '');
                 modal.classList.add('opacity-100');
@@ -295,7 +318,7 @@
             }, 50);
         }
 
-        // 🔒 ৬. পপআপ ক্লোজ সিস্টেম
+        // 🔒 ৭. পপআপ ক্লোজ সিস্টেম
         function closeReadingView() {
             const modal = document.getElementById('readingModal');
             const innerBox = modal.querySelector('.modal-animate');
@@ -319,10 +342,8 @@
             }
         });
 
-        // লাইভ সার্চ ফিল্টারিং ইভেন্ট
         document.getElementById('searchInput').addEventListener('input', renderTopics);
 
-        // অ্যাপ ইনিশিয়েট অন লোড
         window.onload = function() {
             loadDatabaseFromSupabase();
         }
